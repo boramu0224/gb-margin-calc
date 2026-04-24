@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Group Buying Margin Calculator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f0f;--bg2:#1a1a1a;--bg3:#222;--bg4:#2a2a2a;
+  --border:#333;--border2:#444;
+  --text:#f0f0f0;--text2:#999;--text3:#666;
+  --blue:#4f7cff;--blue-bg:#1a2340;--blue-light:#7fa0ff;
+  --green:#3ecf8e;--green-bg:#0d2b1f;
+  --amber:#f5a623;--amber-bg:#2b1f0a;
+  --red:#ff5f5f;--red-bg:#2b0f0f;
+  --radius:8px;--radius-lg:12px;
+}
+html{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5}
+body{max-width:720px;margin:0 auto;padding:2rem 1.25rem 4rem}
+
+h1{font-size:20px;font-weight:600;letter-spacing:-.02em;margin-bottom:.25rem}
+.subtitle{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:2rem}
+
+.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1rem}
+.card-title{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem}
+
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;color:var(--text2);letter-spacing:.02em;display:flex;align-items:center;gap:4px}
+.field input{height:38px;border:0.5px solid var(--border2);border-radius:var(--radius);padding:0 11px;font-size:14px;font-family:'DM Sans',sans-serif;background:var(--bg3);color:var(--text);width:100%;transition:border-color .15s}
+.field input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(79,124,255,.12)}
+.field input::placeholder{color:var(--text3)}
+.field input.auto{background:var(--bg);color:var(--text2);cursor:default;border-color:var(--border)}
+.field input.derived{background:var(--bg);color:var(--text);border-style:dashed;border-color:var(--border2)}
+.field input.derived:focus{background:var(--bg3);border-style:solid;border-color:var(--blue)}
+.formula{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace}
+.hint{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;min-height:14px}
+
+.tag{display:inline-block;font-size:9px;font-weight:500;padding:2px 5px;border-radius:4px;letter-spacing:.04em}
+.tag-auto{background:var(--blue-bg);color:var(--blue-light)}
+.tag-linked{background:var(--green-bg);color:var(--green)}
+
+.fx-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:8px 10px;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius)}
+.fx-label{font-size:11px;color:var(--text2);white-space:nowrap}
+.fx-input{height:28px;border:0.5px solid var(--border2);border-radius:6px;padding:0 8px;font-size:13px;font-family:'DM Mono',monospace;width:110px;background:var(--bg3);color:var(--text)}
+.fx-input:focus{outline:none;border-color:var(--blue)}
+.fx-def{font-size:10px;color:var(--text3);margin-left:auto;font-family:'DM Mono',monospace}
+
+.ship-toggle{display:flex;gap:6px}
+.ship-btn{flex:1;height:38px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg3);color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s}
+.ship-btn.active{border-color:var(--blue);background:var(--blue-bg);color:var(--blue-light);font-weight:500}
+
+.cost-table{width:100%;font-size:12px;border-collapse:collapse}
+.cost-table td{padding:7px 0;border-bottom:0.5px solid var(--border)}
+.cost-table td:first-child{color:var(--text2)}
+.cost-table td:last-child{text-align:right;font-weight:500;color:var(--text);font-family:'DM Mono',monospace;font-size:12px}
+.cost-table tr.total td{border-top:0.5px solid var(--border2);border-bottom:none;font-weight:600;font-size:13px;color:var(--text);padding-top:10px}
+.cost-table .sub-tag{font-size:9px;color:var(--text3);font-family:'DM Mono',monospace;margin-left:4px}
+
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:.75rem}
+.metric-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;text-align:center}
+.metric-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.metric-value{font-size:24px;font-weight:600;color:var(--text);font-family:'DM Mono',monospace;letter-spacing:-.02em}
+.metric-value.positive{color:var(--green)}
+.metric-value.negative{color:var(--red)}
+.revenue-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:.5rem}
+.revenue-label{font-size:11px;color:var(--text2)}
+.revenue-val{font-size:13px;font-weight:500;font-family:'DM Mono',monospace;color:var(--text)}
+
+.btn-row{display:flex;gap:8px;margin-top:.75rem}
+.save-btn{flex:2;height:40px;border:0.5px solid var(--blue);border-radius:var(--radius);background:var(--blue-bg);color:var(--blue-light);font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s}
+.save-btn:hover{background:#243560;border-color:var(--blue-light)}
+.reset-btn{flex:1;height:40px;border:0.5px solid var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .15s}
+.reset-btn:hover{background:var(--bg3);color:var(--text)}
+
+/* Comparison Cards */
+.comp-rows{display:flex;flex-direction:column;gap:8px;margin-top:.5rem}
+.comp-row{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;cursor:grab;user-select:none;transition:border-color .15s,opacity .15s}
+.comp-row:active{cursor:grabbing}
+.comp-row.dragging{opacity:.35}
+.comp-row.drag-over{border-color:var(--blue);border-style:dashed}
+.comp-row-top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.drag-handle{color:var(--text3);font-size:15px;cursor:grab;line-height:1;flex-shrink:0}
+.row-label{flex:1;min-width:0}
+.label-input{border:none;background:transparent;font-size:13px;font-weight:500;color:var(--text);width:100%;padding:0;font-family:'DM Sans',sans-serif;cursor:text}
+.label-input:focus{outline:none;border-bottom:0.5px solid var(--border2);color:var(--text)}
+.del-btn{border:none;background:none;color:var(--text3);cursor:pointer;font-size:12px;padding:2px 4px;border-radius:4px;transition:all .15s;flex-shrink:0}
+.del-btn:hover{color:var(--red);background:var(--red-bg)}
+
+.comp-row-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat-cell{display:flex;flex-direction:column;gap:3px}
+.stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.stat-value{font-size:13px;font-weight:500;color:var(--text);font-family:'DM Mono',monospace}
+.stat-value.big{font-size:16px;font-weight:600}
+.stat-value.best{color:var(--green)}
+.stat-value.worst{color:var(--red)}
+.stat-value.highlight{background:var(--amber-bg);color:var(--amber);border-radius:4px;padding:1px 5px;display:inline-block}
+
+.comp-row-sub{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border)}
+.stat-value-sub{font-size:11px;font-weight:400;color:var(--text2);font-family:'DM Mono',monospace}
+
+.empty-state{font-size:12px;color:var(--text3);text-align:center;padding:1.5rem 0;font-family:'DM Mono',monospace}
+.clear-all{font-size:11px;color:var(--text3);border:none;background:none;cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif}
+.clear-all:hover{color:var(--red)}
+.section-divider{border:none;border-top:0.5px solid var(--border);margin:1rem 0}
+</style>
+</head>
+<body>
+
+<h1>Group Buying Margin Calculator</h1>
+<div class="subtitle">ANKER KOREA · GTM TEAM</div>
+
+<div class="card">
+  <div class="card-title">Inputs</div>
+  <div class="fx-row">
+    <span class="fx-label">Exchange Rate KRW/USD</span>
+    <input class="fx-input" id="fx" type="number" value="1532.56" step="0.01" oninput="calc()">
+    <span class="fx-def">default 1,532.56</span>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label>MSRP (incl. VAT) KRW</label>
+      <input type="number" id="msrp" placeholder="129900" oninput="onMsrp()">
+    </div>
+    <div class="field">
+      <label>Discount % <span class="tag tag-linked">linked</span></label>
+      <input type="number" id="disc" placeholder="50" oninput="onDisc()">
+      <div class="hint" id="disc_hint"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label>GB MSRP (incl. VAT) <span class="tag tag-linked">linked</span></label>
+      <input type="number" id="gb_incl" class="derived" placeholder="auto" oninput="onGbIncl()">
+    </div>
+    <div class="field">
+      <label>GB MSRP (excl. VAT) <span class="tag tag-auto">auto</span></label>
+      <input type="number" id="gb_excl" class="auto" readonly tabindex="-1">
+      <div class="formula">GB MSRP (incl. VAT) ÷ 1.1</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label>Product Cost USD</label>
+      <input type="number" id="pc_usd" placeholder="49.35" oninput="calc()">
+    </div>
+    <div class="field">
+      <label>Product Cost KRW <span class="tag tag-auto">auto</span></label>
+      <input id="pc_krw" class="auto" readonly tabindex="-1">
+      <div class="formula">Product Cost USD × Exchange Rate</div>
+    </div>
+  </div>
+  <div class="row3">
+    <div class="field">
+      <label>Quantity</label>
+      <input type="number" id="qty" placeholder="300" oninput="calc()">
+    </div>
+    <div class="field">
+      <label>Influencer Commission %</label>
+      <input type="number" id="comm" placeholder="10" oninput="calc()">
+    </div>
+    <div class="field">
+      <label>EC Commission %</label>
+      <input type="number" id="ec_comm" placeholder="1.5" oninput="calc()">
+    </div>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label>Contents Production Fee KRW</label>
+      <input type="number" id="cpf" placeholder="0" oninput="calc()">
+    </div>
+    <div class="field">
+      <label>Shipment to Customer</label>
+      <div class="ship-toggle">
+        <button class="ship-btn active" id="btn_normal" onclick="setShip(4100,'normal')">₩4,100 standard</button>
+        <button class="ship-btn" id="btn_light" onclick="setShip(3100,'light')">₩3,100 light</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Cost Breakdown</div>
+  <table class="cost-table">
+    <tr><td>Shipment to KR <span class="sub-tag">MSRP × 2% × qty</span></td><td id="c_ship_kr">—</td></tr>
+    <tr><td>Influencer Commission <span class="sub-tag">GB incl.VAT × qty × comm%</span></td><td id="c_comm">—</td></tr>
+    <tr><td>EC Commission Fee <span class="sub-tag">GB excl.VAT × qty × EC%</span></td><td id="c_ec">—</td></tr>
+    <tr><td>Product Cost <span class="sub-tag">PC KRW × qty</span></td><td id="c_pc">—</td></tr>
+    <tr><td>Shipment to Customer <span class="sub-tag">unit × qty</span></td><td id="c_ship_out">—</td></tr>
+    <tr><td>RMA <span class="sub-tag">GB incl.VAT × qty × 3%</span></td><td id="c_rma">—</td></tr>
+    <tr><td>Warehouse Cost <span class="sub-tag">qty × PC KRW × 1.5%</span></td><td id="c_wh">—</td></tr>
+    <tr><td>Contents Production Fee</td><td id="c_cpf">—</td></tr>
+    <tr class="total"><td>Total Cost</td><td id="c_total">—</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-title">Margin Result</div>
+  <div class="revenue-row">
+    <span class="revenue-label">Total Revenue <span style="font-size:10px;color:var(--text3)">GB MSRP excl.VAT × qty</span></span>
+    <span class="revenue-val" id="r_revenue">—</span>
+  </div>
+  <div class="result-grid">
+    <div class="metric-card">
+      <div class="metric-label">Margin Amount</div>
+      <div class="metric-value" id="r_margin">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Margin Rate</div>
+      <div class="metric-value" id="r_rate">—</div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="save-btn" onclick="saveToComparison()">+ Save to Comparison</button>
+    <button class="reset-btn" onclick="reset()">Reset</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+    <span>Comparison Table</span>
+    <button class="clear-all" onclick="clearAll()">Clear all</button>
+  </div>
+  <div id="comp_empty" class="empty-state">No scenarios saved yet — fill in the calculator and click "+ Save to Comparison"</div>
+  <div class="comp-rows" id="comp_rows"></div>
+</div>
+
+<script>
+var shipCost=4100,rows=[],lastResult=null,updating=false,dragSrc=null;
+
+function setShip(v,type){
+  shipCost=v;
+  document.getElementById('btn_normal').classList.toggle('active',type==='normal');
+  document.getElementById('btn_light').classList.toggle('active',type==='light');
+  calc();
+}
+function krw(n){return(n===null||isNaN(n))?'—':'₩'+Math.round(n).toLocaleString('ko-KR');}
+function vf(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?null:v;}
+function setVal(id,val,dec){var el=document.getElementById(id);if(val===null||isNaN(val)){el.value='';return;}el.value=dec?parseFloat(val.toFixed(dec)):Math.round(val);}
+function setText(id,val){document.getElementById(id).textContent=val;}
+
+function onMsrp(){
+  if(updating)return;updating=true;
+  var msrp=vf('msrp'),disc=vf('disc');
+  if(msrp!==null&&disc!==null){setVal('gb_incl',Math.round(msrp*(1-disc/100)));syncExcl();}
+  updating=false;calc();
+}
+function onDisc(){
+  if(updating)return;updating=true;
+  var msrp=vf('msrp'),disc=vf('disc');
+  if(msrp!==null&&disc!==null){setVal('gb_incl',Math.round(msrp*(1-disc/100)));syncExcl();}
+  var dh=document.getElementById('disc_hint');
+  dh.textContent=disc!==null?'Exact: '+disc.toFixed(2)+'%':'';
+  updating=false;calc();
+}
+function onGbIncl(){
+  if(updating)return;updating=true;
+  var msrp=vf('msrp'),gb=vf('gb_incl');
+  if(msrp!==null&&gb!==null&&msrp>0){
+    var nd=(1-gb/msrp)*100;
+    setVal('disc',Math.round(nd));
+    document.getElementById('disc_hint').textContent='Exact: '+nd.toFixed(2)+'%';
+  }
+  syncExcl();updating=false;calc();
+}
+function syncExcl(){var gb=vf('gb_incl');setVal('gb_excl',gb!==null?gb/1.1:null);}
+
+function calc(){
+  var fx=parseFloat(document.getElementById('fx').value)||1532.56;
+  var msrp=vf('msrp'),gb_incl=vf('gb_incl'),gb_excl=vf('gb_excl');
+  var pc_usd=vf('pc_usd'),qty=vf('qty'),comm=vf('comm'),ec_comm=vf('ec_comm'),cpf=vf('cpf')||0;
+  var pc_krw=pc_usd!==null?pc_usd*fx:null;
+  document.getElementById('pc_krw').value=pc_krw!==null?Math.round(pc_krw).toLocaleString('ko-KR'):'';
+  if([msrp,gb_incl,gb_excl,pc_krw,qty].some(function(x){return x===null;})){
+    ['c_ship_kr','c_comm','c_ec','c_pc','c_ship_out','c_rma','c_wh','c_cpf','c_total','r_revenue'].forEach(function(id){setText(id,'—');});
+    document.getElementById('r_margin').textContent='—';document.getElementById('r_margin').className='metric-value';
+    document.getElementById('r_rate').textContent='—';document.getElementById('r_rate').className='metric-value';
+    lastResult=null;return;
+  }
+  var ship_kr=msrp*0.02*qty;
+  var c_comm=comm!==null?gb_incl*qty*(comm/100):0;
+  var c_ec=ec_comm!==null?gb_excl*qty*(ec_comm/100):0;
+  var c_pc=pc_krw*qty,c_ship_out=shipCost*qty;
+  var c_rma=gb_incl*qty*0.03,c_wh=qty*pc_krw*0.015;
+  var total_cost=ship_kr+c_comm+c_ec+c_pc+c_ship_out+c_rma+c_wh+cpf;
+  var revenue=gb_excl*qty,margin=revenue-total_cost;
+  var rate=revenue>0?margin/revenue:null;
+  setText('c_ship_kr',krw(ship_kr));
+  setText('c_comm',comm!==null?krw(c_comm):'(not entered)');
+  setText('c_ec',ec_comm!==null?krw(c_ec):'(not entered)');
+  setText('c_pc',krw(c_pc));setText('c_ship_out',krw(c_ship_out));
+  setText('c_rma',krw(c_rma));setText('c_wh',krw(c_wh));
+  setText('c_cpf',cpf>0?krw(cpf):'—');setText('c_total',krw(total_cost));setText('r_revenue',krw(revenue));
+  var mv=document.getElementById('r_margin');
+  mv.textContent=krw(margin);mv.className='metric-value '+(margin>=0?'positive':'negative');
+  var rr=document.getElementById('r_rate');
+  rr.textContent=rate!==null?(rate*100).toFixed(2)+'%':'—';
+  rr.className='metric-value '+(rate>=0?'positive':'negative');
+  lastResult={msrp:msrp,disc:vf('disc'),gb_incl:gb_incl,gb_excl:gb_excl,qty:qty,comm:comm,total_cost:total_cost,revenue:revenue,margin:margin,rate:rate};
+}
+
+function saveToComparison(){
+  if(!lastResult){alert('Please fill in all required fields first.');return;}
+  var label='Scenario '+(rows.length+1);
+  rows.push(Object.assign({label:label},lastResult));
+  renderTable();
+}
+
+function renderTable(){
+  var empty=document.getElementById('comp_empty');
+  var container=document.getElementById('comp_rows');
+  if(!rows.length){empty.style.display='';container.innerHTML='';return;}
+  empty.style.display='none';
+  var maxRate=Math.max.apply(null,rows.map(function(r){return r.rate!==null?r.rate:-Infinity;}));
+  var minRate=Math.min.apply(null,rows.map(function(r){return r.rate!==null?r.rate:Infinity;}));
+  var msrpRef=rows.length>1?rows[0].gb_incl:null;
+  container.innerHTML=rows.map(function(r,i){
+    var rStr=r.rate!==null?(r.rate*100).toFixed(2)+'%':'—';
+    var discInt=r.disc!==null?Math.round(r.disc)+'%':'—';
+    var discExact=r.disc!==null&&Math.abs(r.disc-Math.round(r.disc))>0.01?'('+r.disc.toFixed(2)+'%)':'';
+    var rateClass=rows.length>1?(r.rate===maxRate?'best':(r.rate===minRate?'worst':'')):'';
+    var gbChanged=msrpRef!==null&&r.gb_incl!==null&&r.gb_incl!==msrpRef;
+    var gbClass=gbChanged?'highlight':'';
+    return '<div class="comp-row" draggable="true" data-idx="'+i+'" ondragstart="dStart(event,'+i+')" ondragover="dOver(event)" ondrop="dDrop(event,'+i+')" ondragend="dEnd(event)">'
+      +'<div class="comp-row-top">'
+      +'<span class="drag-handle" title="Drag to reorder">⠿</span>'
+      +'<div class="row-label"><input class="label-input" value="'+r.label.replace(/"/g,'&quot;')+'" onchange="updateLabel('+i+',this.value)"></div>'
+      +'<button class="del-btn" onclick="deleteRow('+i+')">✕</button>'
+      +'</div>'
+      +'<div class="comp-row-stats">'
+      +'<div class="stat-cell"><div class="stat-label">Margin Rate</div><div class="stat-value big '+rateClass+'">'+rStr+'</div></div>'
+      +'<div class="stat-cell"><div class="stat-label">Margin ₩</div><div class="stat-value '+rateClass+'">'+krw(r.margin)+'</div></div>'
+      +'<div class="stat-cell"><div class="stat-label">GB incl.VAT</div><div class="stat-value '+gbClass+'">'+(r.gb_incl!==null?'₩'+Math.round(r.gb_incl).toLocaleString('ko-KR'):'—')+'</div></div>'
+      +'<div class="stat-cell"><div class="stat-label">Revenue</div><div class="stat-value">'+krw(r.revenue)+'</div></div>'
+      +'</div>'
+      +'<div class="comp-row-sub">'
+      +'<div class="stat-cell"><div class="stat-label">MSRP</div><div class="stat-value-sub">'+(r.msrp?'₩'+Math.round(r.msrp).toLocaleString('ko-KR'):'—')+'</div></div>'
+      +'<div class="stat-cell"><div class="stat-label">Discount</div><div class="stat-value-sub">'+discInt+' <span style="color:var(--text3);font-size:10px">'+discExact+'</span></div></div>'
+      +'<div class="stat-cell"><div class="stat-label">Qty</div><div class="stat-value-sub">'+(r.qty?r.qty.toLocaleString('ko-KR'):'—')+'</div></div>'
+      +'<div class="stat-cell"><div class="stat-label">Total Cost</div><div class="stat-value-sub">'+krw(r.total_cost)+'</div></div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function updateLabel(i,val){rows[i].label=val;}
+function deleteRow(i){rows.splice(i,1);renderTable();}
+function clearAll(){if(!rows.length)return;if(confirm('Clear all scenarios?')){rows=[];renderTable();}}
+
+function dStart(e,i){dragSrc=i;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
+function dOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';document.querySelectorAll('.comp-row').forEach(function(r){r.classList.remove('drag-over');});e.currentTarget.classList.add('drag-over');}
+function dDrop(e,i){e.preventDefault();if(dragSrc===null||dragSrc===i)return;var tmp=rows.splice(dragSrc,1)[0];rows.splice(i,0,tmp);dragSrc=null;renderTable();}
+function dEnd(){document.querySelectorAll('.comp-row').forEach(function(r){r.classList.remove('dragging','drag-over');});}
+
+function reset(){
+  ['msrp','disc','gb_incl','gb_excl','pc_usd','pc_krw','qty','comm','ec_comm','cpf'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('fx').value='1532.56';
+  document.getElementById('disc_hint').textContent='';
+  setShip(4100,'normal');
+  ['c_ship_kr','c_comm','c_ec','c_pc','c_ship_out','c_rma','c_wh','c_cpf','c_total','r_revenue'].forEach(function(id){setText(id,'—');});
+  document.getElementById('r_margin').textContent='—';document.getElementById('r_margin').className='metric-value';
+  document.getElementById('r_rate').textContent='—';document.getElementById('r_rate').className='metric-value';
+  lastResult=null;
+}
+</script>
+</body>
+</html>
